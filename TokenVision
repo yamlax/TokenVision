@@ -1,0 +1,52 @@
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+
+class TokenVision:
+    def __init__(self):
+        self.api_url = 'https://api.coingecko.com/api/v3'
+
+    def get_token_details(self, token_id: str) -> dict:
+        url = f"{self.api_url}/coins/{token_id}"
+        response = requests.get(url)
+        return response.json()
+
+    def get_token_historical_data(self, token_id: str, vs_currency: str = 'usd', days: int = 30) -> pd.DataFrame:
+        url = f"{self.api_url}/coins/{token_id}/market_chart"
+        params = {
+            'vs_currency': vs_currency,
+            'days': days
+        }
+        response = requests.get(url, params=params)
+        data = response.json()
+        prices = data['prices']
+        df = pd.DataFrame(prices, columns=['timestamp', 'price'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+        return df
+
+    def plot_token_price_trend(self, token_id: str, vs_currency: str = 'usd', days: int = 30):
+        df = self.get_token_historical_data(token_id, vs_currency, days)
+        if df.empty:
+            print("No historical data found.")
+            return
+
+        plt.figure(figsize=(12, 6))
+        plt.plot(df['timestamp'], df['price'], marker='o', linestyle='-')
+        plt.title(f'{token_id.capitalize()} Price Trend')
+        plt.xlabel('Date')
+        plt.ylabel(f'Price ({vs_currency.upper()})')
+        plt.grid(True)
+        plt.show()
+
+# Example Usage
+if __name__ == "__main__":
+    token_vision = TokenVision()
+
+    # Fetch and Display Token Details
+    token_id = 'ethereum'  # Replace with the token ID you want to explore
+    token_details = token_vision.get_token_details(token_id)
+    print(f"Token Details for {token_id}:")
+    print(token_details)
+
+    # Fetch and Display Historical Price Data and Plot Trend
+    token_vision.plot_token_price_trend(token_id=token_id, days=30)
